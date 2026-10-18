@@ -1,0 +1,558 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>キラメキ☆エイト九九ライブ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* Layout: one-column RPG — idol "speech stage" on top, walkable tile map in the middle, d-pad + HUD below; quiz screens replace the map */
+:root{
+  --bg:#fff4f8; --ink:#3a2340; --pink:#ff5fa2; --gold:#ffc23d; --card:#ffffff; --soft:#ffe3ef; --blue:#4a6cf0;
+  --display:"Dela Gothic One","Zen Maru Gothic",system-ui,sans-serif;
+  --body:"Zen Maru Gothic","Hiragino Maru Gothic ProN",system-ui,sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+.app{max-width:520px;margin:0 auto;padding-block:10px 32px;display:flex;flex-direction:column;gap:12px}
+button{font-family:inherit;color:inherit;cursor:pointer;border:none;background:none}
+button:focus-visible{outline:4px dashed var(--pink);outline-offset:3px}
+.card{border:3px solid var(--ink);border-radius:20px;box-shadow:0 5px 0 var(--ink)}
+.press:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+
+.stage{position:relative;display:flex;align-items:flex-end;gap:8px;padding:10px 10px 0;border-radius:22px;
+  background:linear-gradient(180deg,#5b2a6e,#9c3f86 70%,#c9587f);border:3px solid var(--ink);overflow:hidden;min-height:112px}
+.stage::before,.stage::after{content:"";position:absolute;top:-20px;width:110px;height:180px;
+  background:linear-gradient(180deg,rgba(255,255,220,.5),transparent);transform-origin:top;filter:blur(2px)}
+.stage::before{left:0;transform:rotate(-18deg)}.stage::after{right:0;transform:rotate(18deg)}
+#idol{width:96px;flex:0 0 96px;position:relative;z-index:1;transform-origin:50% 100%}
+.bubble{position:relative;z-index:1;background:#fff;padding:8px 12px;font-size:.98rem;font-weight:700;line-height:1.5;
+  margin-bottom:20px;border-radius:16px;border:3px solid var(--ink);min-width:0;flex:1}
+.bubble .nm{display:block;font-family:var(--display);font-size:.8rem;font-weight:400}
+.floor{position:absolute;left:0;right:0;bottom:0;height:12px;background:repeating-linear-gradient(90deg,var(--gold) 0 14px,#ffe08a 14px 28px);border-top:3px solid var(--ink)}
+
+.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:900;flex-wrap:wrap}
+.pill{background:#fff;border:3px solid var(--ink);border-radius:999px;padding:3px 12px;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.party{display:flex;align-items:center;gap:0}.party svg{width:26px;height:22px;margin-left:-4px}
+.mapwrap{border:3px solid var(--ink);border-radius:20px;overflow:hidden;box-shadow:0 5px 0 var(--ink);touch-action:none;background:#c5ebad;line-height:0}
+#map{display:block;width:100%;touch-action:none}
+.ctrl{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ctrl .tip{font-weight:700;font-size:.9rem;opacity:.75;flex:1;min-width:0}
+.dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,48px);gap:6px}
+.dpad button{background:#fff;border:3px solid var(--ink);border-radius:14px;box-shadow:0 4px 0 var(--ink);font-size:1.3rem;font-weight:900}
+.dpad button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.dpad .u{grid-column:2}.dpad .l{grid-column:1;grid-row:2}.dpad .d{grid-column:2;grid-row:2}.dpad .r{grid-column:3;grid-row:2}
+.panel{background:#fff;padding:12px;display:flex;flex-direction:column;gap:10px}
+.panel h2{margin:0;font-family:var(--display);font-weight:400;font-size:1.15rem}
+
+h1{font-family:var(--display);font-weight:400;font-size:1.7rem;margin:0;text-align:center;line-height:1.2;text-wrap:balance}
+.row{display:flex;gap:10px}
+.big{flex:1;padding:14px 8px;font-family:var(--display);font-size:1.1rem;text-align:center;color:#fff}
+.ghost{flex:0 0 auto;padding:14px 14px;background:#fff;font-weight:900}
+.back{align-self:flex-start;padding:6px 14px;background:#fff;font-weight:700;box-shadow:0 3px 0 var(--ink)}
+
+.table{display:flex;flex-direction:column;gap:8px}
+.tr{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px 14px;background:#fff;text-align:left;box-shadow:0 3px 0 var(--ink)}
+.tr .eq{font-family:var(--display);font-size:1.3rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tr .yomi{font-weight:900;font-size:1rem;min-width:0}
+.tr.hide .ans{color:transparent;background:var(--soft);border-radius:8px}
+.toggle{padding:10px;background:#fff;font-weight:700}
+
+.qbar{display:flex;justify-content:space-between;align-items:center;font-weight:900}
+.dots{display:flex;gap:5px;flex-wrap:wrap}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink);background:#fff}
+.dot.ok{background:var(--pink)}.dot.ng{background:#9a8aa0}.dot.now{background:var(--gold)}
+.qcard{background:#fff;padding:14px 12px;text-align:center}
+.q{font-family:var(--display);font-size:3.1rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.q .x{color:var(--pink)}
+.qy{font-weight:900;min-height:1.5em;margin-top:6px;font-size:1.1rem}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ch{padding:18px 4px;font-family:var(--display);font-size:2.2rem;background:#fff;font-variant-numeric:tabular-nums}
+.ch.right{background:var(--pink);color:#fff}
+.ch.wrong{background:#9a8aa0;color:#fff;animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+.battle{background:linear-gradient(180deg,#bfe8ff,#e6f7d6 70%);padding:10px 12px 14px;text-align:center;position:relative;overflow:hidden}
+.mon{width:150px;margin:0 auto;animation:float 1.6s ease-in-out infinite}
+.mon.poof{animation:poof .7s forwards}.mon.flee{animation:flee .8s forwards}
+@keyframes float{50%{transform:translateY(-6px) scaleX(1.04)}}
+@keyframes poof{40%{transform:scale(1.3);opacity:1;filter:brightness(1.6)}100%{transform:scale(.1) rotate(200deg);opacity:0}}
+@keyframes flee{100%{transform:translateX(220px);opacity:0}}
+.bname{font-weight:900;font-size:1.05rem;background:#fff;border:3px solid var(--ink);border-radius:12px;padding:6px;margin:6px 0 10px}
+
+.result{text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.bigstars{font-size:3.2rem;letter-spacing:6px;color:var(--gold);-webkit-text-stroke:2px var(--ink)}
+.bigstars .off{color:#eadde4}
+.score{font-family:var(--display);font-size:1.4rem}
+.miss{background:#fff;padding:10px 14px;text-align:left;width:100%;box-sizing:border-box;font-weight:700;line-height:1.8}
+.unlock{background:#fff;padding:12px;width:100%;box-sizing:border-box;font-weight:900;display:flex;align-items:center;gap:10px;text-align:left}
+.unlock svg{width:72px;flex:0 0 72px}
+.lineup{display:flex;flex-wrap:wrap;justify-content:center;gap:2px}.lineup svg{width:56px}
+
+#idol.happy{animation:hop .55s}#idol.oh{animation:wob .5s}
+@keyframes hop{40%{transform:translateY(-16px) rotate(-5deg)}}
+@keyframes wob{30%{transform:rotate(-6deg)}70%{transform:rotate(6deg)}}
+.m-happy,.m-oh{display:none}
+.happy .m-normal,.oh .m-normal{display:none}.happy .m-happy{display:inline}.oh .m-oh{display:inline}
+.sticker{position:fixed;left:50%;top:42%;font-family:var(--display);font-size:2.3rem;color:var(--pink);
+  -webkit-text-stroke:1.5px #fff;pointer-events:none;transform:translate(-50%,-50%);animation:pop .9s forwards;z-index:5;white-space:nowrap}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+
+<div class="app">
+  <div class="stage"><div id="idol"></div><div class="bubble" id="say"></div><div class="floor"></div></div>
+
+  <section id="mapScreen" class="app" style="padding:0;gap:10px">
+    <div class="hud">
+      <span class="pill">🪙 <span id="coins">0</span></span>
+      <span class="pill">なかま <span class="party" id="party"></span> <span id="pcount">0</span>/8</span>
+      <button class="pill press" id="resetBtn" style="font-weight:900">↺ さいしょから</button>
+    </div>
+    <div class="mapwrap"><canvas id="map" aria-label="ぼうけんマップ"></canvas></div>
+    <div class="panel card" id="panel" hidden></div>
+    <div class="ctrl">
+      <span class="tip">みちを タップするか やじるしで あるこう。メンバーに ぶつかると はなしかけるよ！</span>
+      <div class="dpad">
+        <button class="u" data-dx="0" data-dy="-1" aria-label="うえ">▲</button>
+        <button class="l" data-dx="-1" data-dy="0" aria-label="ひだり">◀</button>
+        <button class="d" data-dx="0" data-dy="1" aria-label="した">▼</button>
+        <button class="r" data-dx="1" data-dy="0" aria-label="みぎ">▶</button>
+      </div>
+    </div>
+  </section>
+
+  <main id="view" class="app" style="padding:0" hidden></main>
+</div>
+
+<script>
+const YOMI={
+1:["いんいちがいち","いんにがに","いんさんがさん","いんしがし","いんごがご","いんろくがろく","いんしちがしち","いんはちがはち","いんくがく"],
+2:["にいちがに","ににんがし","にさんがろく","にしがはち","にごじゅう","にろくじゅうに","にしちじゅうし","にはちじゅうろく","にくじゅうはち"],
+3:["さんいちがさん","さんにがろく","さざんがく","さんしじゅうに","さんごじゅうご","さぶろくじゅうはち","さんしちにじゅういち","さんぱにじゅうし","さんくにじゅうしち"],
+4:["しいちがし","しにがはち","しさんじゅうに","ししじゅうろく","しごにじゅう","しろくにじゅうし","ししちにじゅうはち","しはさんじゅうに","しくさんじゅうろく"],
+5:["ごいちがご","ごにじゅう","ごさんじゅうご","ごしにじゅう","ごごにじゅうご","ごろくさんじゅう","ごしちさんじゅうご","ごはしじゅう","ごっくしじゅうご"],
+6:["ろくいちがろく","ろくにじゅうに","ろくさんじゅうはち","ろくしにじゅうし","ろくごさんじゅう","ろくろくさんじゅうろく","ろくしちしじゅうに","ろくはしじゅうはち","ろっくごじゅうし"],
+7:["しちいちがしち","しちにじゅうし","しちさんにじゅういち","しちしにじゅうはち","しちごさんじゅうご","しちろくしじゅうに","しちしちしじゅうく","しちはごじゅうろく","しちくろくじゅうさん"],
+8:["はちいちがはち","はちにじゅうろく","はちさんにじゅうし","はちしさんじゅうに","はちごしじゅう","はちろくしじゅうはち","はちしちごじゅうろく","はっぱろくじゅうし","はっくしちじゅうに"],
+9:["くいちがく","くにじゅうはち","くさんにじゅうしち","くしさんじゅうろく","くごしじゅうご","くろくごじゅうし","くしちろくじゅうさん","くはしちじゅうに","くくはちじゅういち"]};
+const M={
+2:{n:"あいちゃん",c:"#ff6b7a",h:"#5a3328",s:0,a:"ribbon",ph:"いっしょに がんばろ〜！"},
+3:{n:"ゆいちゃん",c:"#ff9cd0",h:"#c98a5e",s:4,a:"heart",ph:"ゆい、九九 だいすき♡"},
+4:{n:"きこ",c:"#ffa24a",h:"#6e3c24",s:2,a:"star",ph:"げんき100ばい いくよっ！"},
+5:{n:"あずさ",c:"#ffd23a",h:"#3e2a2c",s:3,a:"flower",ph:"5のだんは リズムが かんたん！"},
+6:{n:"えま",c:"#5ccf86",h:"#4a2f22",s:1,a:"flower",ph:"おちついて ゆっくりね。"},
+7:{n:"きえ",c:"#7ccdf2",h:"#33263a",s:4,a:"tiara",ph:"7のだんは むずかしいけど まけない！"},
+8:{n:"めい",c:"#6f8cf5",h:"#2a2236",s:0,a:"star",ph:"はっぱ ろくじゅうし！ きめっ！"},
+9:{n:"さな",c:"#b58cf5",h:"#5e3a30",s:1,a:"tiara",ph:"さいごの だん、いっしょに クリアしよ。"}};
+const P={n:"きみ",c:"#ff5fa2",h:"#7a4a32",s:3,a:"ribbon"}; // プレイヤー
+const SYS={n:"ナビ",c:"#ff5fa2"};
+const PRAISE=["かんぺき！","さいこう！","てんさい！","ナイス！","キラッ☆","だいせいかい！"];
+const $=id=>document.getElementById(id);
+const view=$('view'),mapScreen=$('mapScreen'),say=$('say'),idolBox=$('idol'),panel=$('panel');
+
+/* ---------- セーブデータ ---------- */
+let S={best:{},cleared:{},coins:0,pos:{x:4,y:1}};
+try{const s=JSON.parse(localStorage.getItem('kuku-rpg')||'null');if(s)S=Object.assign(S,s);
+  else{const b=JSON.parse(localStorage.getItem('kuku-idol-best')||'{}');S.best=b}}catch(e){}
+let cloudRef=null,posTimer=null;
+S.resetAt=S.resetAt||0;
+function save(){try{localStorage.setItem('kuku-rpg',JSON.stringify(S))}catch(e){}
+  if(cloudRef)cloudRef.set({best:S.best,rpg:{cleared:S.cleared,coins:S.coins,pos:S.pos},resetAt:S.resetAt,updatedAt:Date.now()}).catch(()=>{});}
+function savePosSoon(){clearTimeout(posTimer);posTimer=setTimeout(save,1500)}
+const nCleared=c=>Object.keys(c||{}).filter(k=>c[k]).length;
+
+/* ---------- キャラ絵 ---------- */
+const OL='#4a2c3f';
+function acc(type,c){
+  const g=`stroke="${OL}" stroke-width="1.6" stroke-linejoin="round"`;
+  return {
+    tiara:`<path d="M32 16 L36 6 L42 12 L50 2 L58 12 L64 6 L68 16 Q50 11 32 16Z" fill="#fff" ${g}/><circle cx="50" cy="9" r="3" fill="${c}" ${g}/><circle cx="37" cy="11" r="1.6" fill="${c}"/><circle cx="63" cy="11" r="1.6" fill="${c}"/>`,
+    ribbon:`<g transform="translate(70 14) rotate(15)"><path d="M0 0 L-13 -8 Q-16 0 -13 8Z M0 0 L13 -8 Q16 0 13 8Z" fill="${c}" ${g}/><path d="M-2 2 l-5 11 M2 2 l5 11" stroke="${c}" stroke-width="3" stroke-linecap="round"/><circle r="3.2" fill="${c}" ${g}/></g>`,
+    star:`<path transform="translate(70 15) rotate(12)" d="M0 -10 L3 -3 L10 -3 L4.5 2 L6.5 9.5 L0 5 L-6.5 9.5 L-4.5 2 L-10 -3 L-3 -3Z" fill="${c}" ${g}/><circle cx="60" cy="10" r="1.5" fill="#ffd23a"/>`,
+    flower:`<g transform="translate(70 15)">${[0,72,144,216,288].map(r=>`<circle transform="rotate(${r}) translate(0 -5.5)" r="4.6" fill="${c}" ${g}/>`).join('')}<circle r="3.4" fill="#ffd23a" ${g}/></g>`,
+    heart:`<path transform="translate(69 13) rotate(14)" d="M0 9 C-13 0 -9 -10 0 -4 C9 -10 13 0 0 9Z" fill="${c}" ${g}/><circle cx="66" cy="10" r="1.6" fill="#fff"/>`
+  }[type];
+}
+function face(m,full){
+  const {c,h,s,a}=m;
+  const hb=`fill="${h}" stroke="${OL}" stroke-width="2"`;
+  const back=[
+    `<path d="M20 30 Q2 40 8 70 Q12 84 6 94 Q22 88 22 66 Q24 48 24 36Z" ${hb}/><path d="M80 30 Q98 40 92 70 Q88 84 94 94 Q78 88 78 66 Q76 48 76 36Z" ${hb}/>`,
+    `<path d="M18 40 Q12 76 20 94 Q50 100 80 94 Q88 76 82 40Z" ${hb}/>`,
+    `<path d="M80 34 Q100 44 94 68 Q92 82 98 92 Q80 86 80 66Z" ${hb}/><circle cx="83" cy="34" r="4" fill="${c}" stroke="${OL}" stroke-width="1.6"/>`,
+    `<path d="M16 42 Q14 70 24 74 L76 74 Q86 70 84 42Z" ${hb}/>`,
+    `<path d="M18 40 Q8 56 16 66 Q8 78 18 90 Q34 96 50 94 Q66 96 82 90 Q92 78 84 66 Q92 56 82 40Z" ${hb}/>`][s];
+  const eye=(x)=>`<ellipse cx="${x}" cy="49" rx="6.4" ry="8" fill="#3b2433"/>
+    <ellipse cx="${x}" cy="53" rx="4.6" ry="3.6" fill="${c}" opacity=".75"/>
+    <circle cx="${x-2.2}" cy="45.5" r="2.6" fill="#fff"/><circle cx="${x+2.4}" cy="53.5" r="1.2" fill="#fff"/>
+    <path d="M${x-7.5} 43 Q${x} 37.5 ${x+7.5} 43" stroke="#3b2433" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  const sk=`fill="#fff3ea" stroke="${OL}" stroke-width="2"`;
+  const body=full?`
+    <ellipse cx="38" cy="113" rx="8" ry="6" fill="#fff" stroke="${OL}" stroke-width="2"/><ellipse cx="62" cy="113" rx="8" ry="6" fill="#fff" stroke="${OL}" stroke-width="2"/>
+    <path d="M33 112 q5 -3 10 0 M57 112 q5 -3 10 0" stroke="${c}" stroke-width="1.8" fill="none"/>
+    <path d="M24 106 Q26 86 36 78 L64 78 Q74 86 76 106 Q70 102 64 106 Q57 101 50 106 Q43 101 36 106 Q30 102 24 106Z" fill="${c}" stroke="${OL}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M27 104 Q31 101 36 104 Q43 99 50 104 Q57 99 64 104 Q69 101 73 104" stroke="#fff" stroke-width="2.2" fill="none" stroke-dasharray="1 3" stroke-linecap="round"/>
+    <path d="M38 78 L62 78 L58 92 L42 92Z" fill="#fff" opacity=".45"/>
+    <circle cx="30" cy="84" r="7.5" fill="${c}" stroke="${OL}" stroke-width="2"/><circle cx="70" cy="84" r="7.5" fill="${c}" stroke="${OL}" stroke-width="2"/>
+    <circle cx="25" cy="92" r="3.6" ${sk}/><circle cx="75" cy="92" r="3.6" ${sk}/>
+    <path d="M40 77 Q50 85 60 77" fill="#fff" stroke="${OL}" stroke-width="1.8"/>
+    ${[42,46,50,54,58].map((x,i)=>`<circle cx="${x}" cy="${79+[0,2,3,2,0][i]}" r="1.4" fill="#fff" stroke="${OL}" stroke-width=".8"/>`).join('')}
+    <circle cx="50" cy="90" r="2.4" fill="#fff" stroke="${OL}" stroke-width="1.2"/>`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -2 100 ${full?124:82}" aria-hidden="true">${back}${body}
+  <path d="M20 46 Q18 18 50 14 Q82 18 80 46 Q82 72 50 76 Q18 72 20 46Z" fill="#fff3ea" stroke="${OL}" stroke-width="2.2"/>
+  ${eye(38)}${eye(62)}
+  <ellipse cx="29" cy="60" rx="5.5" ry="3.2" fill="#ff9fb7" opacity=".6"/><ellipse cx="71" cy="60" rx="5.5" ry="3.2" fill="#ff9fb7" opacity=".6"/>
+  <path class="m-normal" d="M45 63 q2.5 2.6 5 0 q2.5 2.6 5 0" stroke="#d9405e" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path class="m-happy" d="M44 61 Q50 70 56 61Z" fill="#ff6b86" stroke="#c4334f" stroke-width="1.6" stroke-linejoin="round"/>
+  <ellipse class="m-oh" cx="50" cy="64" rx="2.6" ry="3.4" fill="#c4334f"/>
+  <path d="M19 46 Q14 12 50 10 Q86 12 81 46 L78 36 L74 42 L70 30 L65 38 L60 28 L55 37 L50 27 L45 37 L40 28 L35 38 L30 30 L26 42 L22 36Z" fill="${h}" stroke="${OL}" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M30 20 Q40 15 48 18" stroke="#fff" stroke-width="2" opacity=".35" fill="none" stroke-linecap="round"/>
+  <path d="M20 42 Q17 56 22 64" stroke="${h}" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M80 42 Q83 56 78 64" stroke="${h}" stroke-width="5" fill="none" stroke-linecap="round"/>
+  ${acc(a,c)}</svg>`;
+}
+function spriteImg(m){const svg=face(m,true).replace(/<path class="m-happy"[^>]*\/>/,'').replace(/<ellipse class="m-oh"[^>]*\/>/,'').replace(/class="m-normal" /,'');
+  const i=new Image();i.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);return i}
+function monster(c){return `<svg viewBox="0 0 120 100" aria-hidden="true">
+  <ellipse cx="60" cy="94" rx="40" ry="5" fill="#000" opacity=".12"/>
+  <path d="M16 90 Q8 50 40 30 Q60 10 80 30 Q112 50 104 90Z" fill="${c}" stroke="${OL}" stroke-width="3"/>
+  <path d="M62 14 q4 -10 12 -6" stroke="${OL}" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="76" cy="8" r="4" fill="#ffd23a" stroke="${OL}" stroke-width="2"/>
+  <ellipse cx="38" cy="44" rx="8" ry="6" fill="#fff" opacity=".6"/>
+  <ellipse cx="46" cy="62" rx="6" ry="8" fill="${OL}"/><ellipse cx="74" cy="62" rx="6" ry="8" fill="${OL}"/>
+  <circle cx="44" cy="58" r="2.4" fill="#fff"/><circle cx="72" cy="58" r="2.4" fill="#fff"/>
+  <path d="M54 76 q6 6 12 0" stroke="${OL}" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <ellipse cx="34" cy="74" rx="6" ry="3.5" fill="#ff8fa8" opacity=".6"/><ellipse cx="86" cy="74" rx="6" ry="3.5" fill="#ff8fa8" opacity=".6"/></svg>`}
+
+/* ---------- 共通 ---------- */
+let cur=P;
+function setIdol(m){cur=m;idolBox.innerHTML=face(m,true)}
+function talk(t,m=cur){say.innerHTML=`<span class="nm" style="color:${m.c}">${m.n}</span>${t}`}
+function mood(x){idolBox.classList.remove('happy','oh');void idolBox.offsetWidth;if(x)idolBox.classList.add(x)}
+function speak(t){try{const s=window.speechSynthesis;if(!s)return;s.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='ja-JP';u.rate=.95;u.pitch=1.3;s.speak(u)}catch(e){}}
+let ac;function tone(notes,type='triangle',gap=.08){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+ notes.forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.value=.07;
+ o.connect(g).connect(ac.destination);const t=ac.currentTime+i*gap;o.start(t);g.gain.exponentialRampToValueAtTime(.001,t+.2);o.stop(t+.22)})}catch(e){}}
+const beep=ok=>ok?tone([784,988,1319,1568]):tone([330,247],'sine');
+function sticker(t){const d=document.createElement('div');d.className='sticker';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),950)}
+function h(html){view.innerHTML=html;view.hidden=false;mapScreen.hidden=true;window.scrollTo(0,0)}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function choicesFor(a,b){
+  const ans=a*b,s=new Set([ans]);
+  const cand=shuffle([a*(b+1),a*(b-1),(a+1)*b,(a-1)*b,ans+1,ans-1,ans+10,ans-10,a+b]).filter(x=>x>0&&x!==ans);
+  for(const c of cand){if(s.size>=4)break;s.add(c)}
+  while(s.size<4)s.add((Math.random()*81|0)+1);
+  return shuffle([...s]);
+}
+const memberFor=d=>M[d]||M[2+(Math.random()*8|0)];
+
+/* ---------- マップ生成 ---------- */
+const W=9,H=59,T=[],DEC=[],STAGE={},STAGEPOS={};
+function rng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+(()=>{const R=rng(20261017);
+  for(let y=0;y<H;y++){T[y]=Array(W).fill(0);DEC[y]=Array.from({length:W},()=>R())}
+  const P1=(x,y)=>{if(T[y][x]===0)T[y][x]=1};
+  const vl=(x,a,b)=>{for(let y=Math.min(a,b);y<=Math.max(a,b);y++)P1(x,y)};
+  const hl=(y,a,b)=>{for(let x=Math.min(a,b);x<=Math.max(a,b);x++)P1(x,y)};
+  const XS=[0,4,2,6,3,6,2,5,2,6];
+  T[0][4]=5;let px=4,py=0;
+  for(let d=1;d<=9;d++){const sr=6*d,turn=sr-2;vl(px,py+1,turn);hl(turn,px,XS[d]);vl(XS[d],turn,sr-1);
+    T[sr][XS[d]]=6;STAGE[XS[d]+','+sr]=d;STAGEPOS[d]={x:XS[d],y:sr};px=XS[d];py=sr}
+  vl(px,py+1,56);hl(56,px,4);
+  for(let x=1;x<=7;x++){T[57][x]=8;T[58][x]=8}T[57][4]=7;
+  for(let y=1;y<H;y++)for(let x=0;x<W;x++)if(T[y][x]===0){const r=DEC[y][x];
+    const nearPath=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>T[y+dy]&&[1,6].includes(T[y+dy][x+dx]));
+    if(r<.16&&!nearPath)T[y][x]=2;else if(r<.28)T[y][x]=3;else if(r<.31&&!nearPath)T[y][x]=4}
+})();
+const inB=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+const stageAt=(x,y)=>STAGE[x+','+y];
+const walkable=(x,y)=>inB(x,y)&&(T[y][x]===1||(T[y][x]===6&&S.cleared[stageAt(x,y)]));
+const interactive=(x,y)=>inB(x,y)&&((T[y][x]===6&&!S.cleared[stageAt(x,y)])||T[y][x]===7);
+const nextTarget=()=>{for(let d=1;d<=9;d++)if(!S.cleared[d])return d;return 'dome'};
+const partyList=()=>[2,3,4,5,6,7,8,9].filter(d=>S.cleared[d]);
+
+/* ---------- 描画 ---------- */
+const cv=$('map'),ctx=cv.getContext('2d');
+let TS=40,VH=9,dpr=1,off=null,camY=0;
+const imgs={P:spriteImg(P)};for(const d in M)imgs[d]=spriteImg(M[d]);
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect?c.roundRect(x,y,w,h,r):c.rect(x,y,w,h)}
+function buildStatic(){
+  off=document.createElement('canvas');off.width=W*TS*dpr;off.height=H*TS*dpr;
+  const c=off.getContext('2d');c.scale(dpr,dpr);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){c.fillStyle=(x+y)%2?'#c7ecb0':'#bfe7a7';c.fillRect(x*TS,y*TS,TS,TS)}
+  const pathy=(x,y)=>inB(x,y)&&[1,6,7].includes(T[y][x]);
+  const pad=TS*.12;
+  for(const [col,ins] of [['#e2c27f',0],['#f7e3b3',3]]){c.fillStyle=col;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(pathy(x,y)){
+      rr(c,x*TS+pad+ins,y*TS+pad+ins,TS-2*pad-2*ins,TS-2*pad-2*ins,TS*.3);c.fill();
+      if(pathy(x+1,y))c.fillRect(x*TS+TS/2,y*TS+pad+ins,TS,TS-2*pad-2*ins);
+      if(pathy(x,y+1))c.fillRect(x*TS+pad+ins,y*TS+TS/2,TS-2*pad-2*ins,TS)}}
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const t=T[y][x],X=x*TS,Y=y*TS,r=DEC[y][x];
+    if(t===0&&r>.85){c.fillStyle='#a9da8e';for(let k=0;k<3;k++){c.fillRect(X+TS*(.2+k*.25),Y+TS*(.55+(k%2)*.15),2,6)}}
+    if(t===2){c.fillStyle='#8a5a3a';c.fillRect(X+TS*.43,Y+TS*.55,TS*.14,TS*.35);
+      c.fillStyle='#5fbf6a';c.strokeStyle='#3c8a4a';c.lineWidth=2;c.beginPath();c.arc(X+TS*.5,Y+TS*.42,TS*.34,0,7);c.fill();c.stroke();
+      c.fillStyle='#86d68e';c.beginPath();c.arc(X+TS*.4,Y+TS*.33,TS*.1,0,7);c.fill();
+      if(r<.05){c.fillStyle='#ff6b7a';[[.62,.4],[.4,.5],[.55,.25]].forEach(([a,b])=>{c.beginPath();c.arc(X+TS*a,Y+TS*b,TS*.05,0,7);c.fill()})}}
+    if(t===3){const cols=['#ff8fc0','#fff','#ffd23a','#b58cf5','#7ccdf2'];
+      [[.3,.35],[.65,.55],[.4,.72]].forEach(([a,b],i)=>{c.fillStyle=cols[(r*100+i|0)%5];for(let k=0;k<5;k++){c.beginPath();c.arc(X+TS*a+Math.cos(k*1.26)*TS*.06,Y+TS*b+Math.sin(k*1.26)*TS*.06,TS*.045,0,7);c.fill()}
+        c.fillStyle='#ffd23a';c.beginPath();c.arc(X+TS*a,Y+TS*b,TS*.035,0,7);c.fill()})}
+    if(t===4){c.fillStyle='#8fd3f5';c.strokeStyle='#5aaed8';c.lineWidth=2;rr(c,X+TS*.1,Y+TS*.2,TS*.8,TS*.6,TS*.3);c.fill();c.stroke();
+      c.strokeStyle='#fff';c.beginPath();c.moveTo(X+TS*.3,Y+TS*.4);c.lineTo(X+TS*.45,Y+TS*.4);c.stroke()}
+    if(t===5){c.fillStyle='#fff3e0';c.strokeStyle=OL;c.lineWidth=2;c.fillRect(X+TS*.15,Y+TS*.45,TS*.7,TS*.5);c.strokeRect(X+TS*.15,Y+TS*.45,TS*.7,TS*.5);
+      c.fillStyle='#ff6b9a';c.beginPath();c.moveTo(X+TS*.05,Y+TS*.5);c.lineTo(X+TS*.5,Y+TS*.08);c.lineTo(X+TS*.95,Y+TS*.5);c.closePath();c.fill();c.stroke();
+      c.fillStyle='#ffd23a';c.fillRect(X+TS*.42,Y+TS*.7,TS*.16,TS*.25)}
+    if(t===6){c.fillStyle='#ffe08a';c.strokeStyle='#ff5fa2';c.lineWidth=3;c.beginPath();c.ellipse(X+TS/2,Y+TS*.6,TS*.44,TS*.3,0,0,7);c.fill();c.stroke();
+      c.fillStyle='#fff';for(let k=0;k<6;k++){c.beginPath();c.arc(X+TS/2+Math.cos(k*1.05)*TS*.34,Y+TS*.6+Math.sin(k*1.05)*TS*.22,TS*.035,0,7);c.fill()}}
+  }
+  // ドーム
+  const cx=4.5*TS,cy=59*TS;
+  c.fillStyle='#fff';c.strokeStyle=OL;c.lineWidth=3;c.beginPath();c.ellipse(cx,cy,3.4*TS,1.9*TS,0,Math.PI,0);c.closePath();c.fill();c.stroke();
+  c.save();c.beginPath();c.ellipse(cx,cy,3.4*TS,1.9*TS,0,Math.PI,0);c.clip();
+  c.strokeStyle='#ff9cd0';c.lineWidth=TS*.18;for(let k=-3;k<=3;k++){c.beginPath();c.moveTo(cx+k*TS*.95,cy);c.quadraticCurveTo(cx+k*TS*.5,cy-1.9*TS,cx,cy-1.95*TS);c.stroke()}
+  c.restore();
+  c.fillStyle='#ff5fa2';c.strokeStyle=OL;c.lineWidth=2;rr(c,cx-TS*.45,cy-TS*1.05,TS*.9,TS*1.05,[TS*.45,TS*.45,0,0]);c.fill();c.stroke();
+  c.fillStyle=OL;c.font=`${TS*.36}px "Dela Gothic One",sans-serif`;c.textAlign='center';c.fillText('キラメキドーム',cx,cy-1.25*TS);
+  c.fillStyle='#ffd23a';[[-2.6,-.5],[2.6,-.5],[-1.8,-1.5],[1.8,-1.5]].forEach(([a,b])=>{star(c,cx+a*TS,cy+b*TS,TS*.16)});
+}
+function star(c,x,y,r){c.beginPath();for(let k=0;k<10;k++){const rr=k%2?r*.45:r,an=-Math.PI/2+k*Math.PI/5;c.lineTo(x+Math.cos(an)*rr,y+Math.sin(an)*rr)}c.closePath();c.fill()}
+function resize(){
+  const w=Math.min(cv.parentElement.clientWidth||360,520);TS=Math.floor(w/W);dpr=Math.min(window.devicePixelRatio||1,2.5);
+  cv.style.height=(TS*VH)+'px';cv.style.width=(TS*W)+'px';cv.width=TS*W*dpr;cv.height=TS*VH*dpr;
+  buildStatic();camY=clampCam(pl.y*TS+TS/2-VH*TS/2);
+}
+const clampCam=v=>Math.max(0,Math.min(H*TS-VH*TS,v));
+
+/* ---------- 移動 ---------- */
+let pl={...S.pos};if(!walkable(pl.x,pl.y))pl={x:4,y:1};
+let trail=Array(9).fill(0).map(()=>({...pl}));
+let mv=null,queue=[],pending=null,busy=false,steps=0,last=0,tick=0;
+function bfs(tx,ty,toNeighbor){
+  const start=mv?mv.to:pl,key=(x,y)=>x+','+y,prev={},q=[start];prev[key(start.x,start.y)]=null;
+  const goal=(x,y)=>toNeighbor?Math.abs(x-tx)+Math.abs(y-ty)===1:(x===tx&&y===ty);
+  while(q.length){const n=q.shift();if(goal(n.x,n.y)){const out=[];let k=key(n.x,n.y),c=n;while(prev[k]!==null&&prev[k]!==undefined){out.unshift(c);c=prev[k];k=key(c.x,c.y)}return out}
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=n.x+dx,y=n.y+dy;if(walkable(x,y)&&!(key(x,y) in prev)){prev[key(x,y)]=n;q.push({x,y})}}}
+  return null;
+}
+function tapTo(x,y){
+  if(busy||!inB(x,y))return;closePanel();
+  if(interactive(x,y)){const base=mv?mv.to:pl;
+    if(Math.abs(base.x-x)+Math.abs(base.y-y)===1){queue=[];pending={x,y};if(!mv)fire();return}
+    const p=bfs(x,y,true);if(p){queue=p;pending={x,y}}return}
+  if(walkable(x,y)){const p=bfs(x,y,false);if(p){queue=p;pending=null}}
+}
+function dirStep(dx,dy){
+  if(busy||mv||queue.length)return;closePanel();
+  const x=pl.x+dx,y=pl.y+dy;
+  if(interactive(x,y)){pending={x,y};fire();return}
+  if(walkable(x,y))queue=[{x,y}];
+}
+function fire(){const p=pending;pending=null;if(!p)return;
+  if(T[p.y][p.x]===7)return openDome();openStage(stageAt(p.x,p.y),false)}
+function arrived(){
+  S.pos={...pl};savePosSoon();steps++;
+  if(!queue.length){
+    if(pending)return fire();
+    const d=stageAt(pl.x,pl.y);if(d&&S.cleared[d])return openStage(d,true);
+  }
+  const nearStage=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[0,2],[0,-2]].some(([dx,dy])=>inB(pl.x+dx,pl.y+dy)&&[6,7].includes(T[pl.y+dy][pl.x+dx]));
+  if(steps>=6&&!nearStage&&Math.random()<.11){queue=[];pending=null;steps=0;busy=true;tone([520,520,700],'square',.09);
+    setTimeout(encounter,550)}
+}
+function loop(ts){
+  const dt=Math.min(50,ts-(last||ts));last=ts;tick+=dt;
+  if(!mapScreen.hidden){
+    if(!mv&&queue.length&&!busy){const n=queue.shift();trail.unshift({...pl});trail.length=9;mv={from:{...pl},to:n,t:0}}
+    if(mv){mv.t+=dt/165;if(mv.t>=1){pl={...mv.to};mv=null;arrived()}}
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+const lerp=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
+function drawSprite(img,fx,fy,bob,scale=1){
+  const w=TS*1.2*scale,hh=w*1.24,x=fx*TS+TS/2-w/2,y=fy*TS+TS*.98-hh-camY+bob;
+  ctx.fillStyle='rgba(58,35,64,.18)';ctx.beginPath();ctx.ellipse(fx*TS+TS/2,fy*TS+TS*.92-camY,w*.3,TS*.1,0,0,7);ctx.fill();
+  if(img.complete&&img.naturalWidth)ctx.drawImage(img,x,y,w,hh);
+}
+function draw(){
+  const t=mv?mv.t:1,p=mv?lerp(mv.from,mv.to,t):pl;
+  camY+=(clampCam(p.y*TS+TS/2-VH*TS/2)-camY)*.18;
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W*TS,VH*TS);
+  ctx.drawImage(off,0,camY*dpr,off.width,VH*TS*dpr,0,0,W*TS,VH*TS);
+  const sp=[],walkBob=mv?-Math.abs(Math.sin(t*Math.PI))*TS*.12:0;
+  const nt=nextTarget();
+  for(let d=1;d<=9;d++)if(!S.cleared[d]){const s=STAGEPOS[d];sp.push({y:s.y,f:()=>{
+    if(d===1)drawSign(s.x,s.y);else drawSprite(imgs[d],s.x,s.y,Math.sin(tick/300+d)*TS*.04);
+    drawTag(`${d}のだん`,s.x,s.y,d===1?'#ff5fa2':M[d].c);
+    if(nt===d)drawBang(s.x,s.y)}})}
+  const party=partyList();
+  party.forEach((d,i)=>{const a=trail[i],b=trail[i+1]||trail[trail.length-1];const q=mv?lerp(b,a,t):a;
+    sp.push({y:q.y-.001*(i+1),f:()=>drawSprite(imgs[d],q.x,q.y,mv?-Math.abs(Math.sin((t+i*.3)*Math.PI))*TS*.1:0,.9)})});
+  sp.push({y:p.y+.0001,f:()=>drawSprite(imgs.P,p.x,p.y,walkBob)});
+  sp.sort((a,b)=>a.y-b.y).forEach(s=>s.f());
+  if(nt==='dome'){drawBang(4,57)}
+  if(busy&&!mv){drawBang(pl.x,pl.y,'#ff3b5c')}
+}
+function drawSign(x,y){const X=x*TS,Y=y*TS-camY;ctx.fillStyle='#8a5a3a';ctx.fillRect(X+TS*.45,Y+TS*.3,TS*.1,TS*.6);
+  ctx.fillStyle='#fff3e0';ctx.strokeStyle=OL;ctx.lineWidth=2;rr(ctx,X+TS*.12,Y+TS*.05,TS*.76,TS*.4,6);ctx.fill();ctx.stroke();
+  ctx.fillStyle=OL;ctx.font=`${TS*.24}px "Dela Gothic One",sans-serif`;ctx.textAlign='center';ctx.fillText('れんしゅう',X+TS/2,Y+TS*.33)}
+function drawTag(t,x,y,col){const X=x*TS+TS/2,Y=y*TS-TS*.55-camY;ctx.font=`900 ${TS*.26}px "Zen Maru Gothic",sans-serif`;ctx.textAlign='center';
+  const w=ctx.measureText(t).width+12;ctx.fillStyle=col;ctx.strokeStyle=OL;ctx.lineWidth=2;rr(ctx,X-w/2,Y-TS*.22,w,TS*.34,8);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#fff';ctx.fillText(t,X,Y+TS*.04)}
+function drawBang(x,y,col='#ffc23d'){const X=x*TS+TS*.95,Y=y*TS-TS*.75-camY+Math.sin(tick/180)*3;
+  ctx.fillStyle=col;ctx.strokeStyle=OL;ctx.lineWidth=2;ctx.beginPath();ctx.arc(X,Y,TS*.2,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=OL;ctx.font=`${TS*.28}px "Dela Gothic One",sans-serif`;ctx.textAlign='center';ctx.fillText('!',X,Y+TS*.1)}
+
+cv.addEventListener('pointerdown',e=>{const r=cv.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/r.width*W),y=Math.floor(((e.clientY-r.top)/r.height*VH*TS+camY)/TS);tapTo(x,y)});
+document.querySelectorAll('.dpad button').forEach(b=>{let iv;const go=()=>dirStep(+b.dataset.dx,+b.dataset.dy);
+  b.addEventListener('pointerdown',e=>{e.preventDefault();go();clearInterval(iv);iv=setInterval(go,60)});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>clearInterval(iv)))});
+document.addEventListener('keydown',e=>{if(mapScreen.hidden)return;const k={ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0]}[e.key];if(k){e.preventDefault();dirStep(...k)}});
+
+/* ---------- マップ画面 ---------- */
+function guide(){const nt=nextTarget();
+  if(nt==='dome')return '8人 そろったね！ いちばん したの キラメキドームで さいごの ライブだよ！';
+  if(nt===1)return 'みちを したへ すすんで「れんしゅう」の かんばんまで いこう！';
+  return `つぎは ${nt}のだんの ${M[nt].n}が まってるよ。「!」の ところまで すすもう！`}
+function hud(){$('coins').textContent=S.coins;const p=partyList();$('pcount').textContent=p.length;
+  $('party').innerHTML=p.map(d=>face(M[d])).join('')}
+function showMap(msg){view.hidden=true;mapScreen.hidden=false;busy=false;closePanel();setIdol(P);mood();talk(msg||guide(),P);hud();window.scrollTo(0,0)}
+function closePanel(){panel.hidden=true}
+function openPanel(html){panel.innerHTML=html;panel.hidden=false}
+function openStage(d,again){
+  const m=M[d];
+  if(m){setIdol(m);mood('happy')}else setIdol(P);
+  if(d===1)talk(again?'1のだんで ウォーミングアップ する？':'ここは れんしゅうステージ！ 1のだんで ウォーミングアップしよう。7もん せいかいで みちが ひらくよ。',m?m:SYS);
+  else if(again)talk(`${d}のだん、もう いっかい ライブ する？`,m);
+  else talk(`${m.ph} ${d}のだんの ライブバトルで 7もん せいかい できたら なかまに なるよ！`,m);
+  const best=S.best[d]?' '+'★'.repeat(S.best[d])+'☆'.repeat(3-S.best[d]):'';
+  openPanel(`<h2>${d}のだん${m?' ・ '+m.n:''}${best}</h2>
+   <div class="row"><button class="big card press" style="background:var(--blue)" id="pl">📖 れんしゅう</button>
+   <button class="big card press" style="background:var(--pink)" id="pb">🎤 ライブバトル</button>
+   <button class="ghost card press" id="pc">✕</button></div>`);
+  $('pl').onclick=()=>study(d,m||P);$('pb').onclick=()=>quiz(d,m||P);$('pc').onclick=()=>{closePanel();showMap()};
+}
+function openDome(){
+  if(nextTarget()!=='dome'){talk('ドームは まだ しまってるよ。8人 みんなを なかまに したら ひらくよ！',SYS);mood('oh');return}
+  setIdol(M[3]);mood('happy');talk('ついに ドーム！ ぜんぶの だんから でる ぜんいんライブだよ！',{n:"キラメキ☆エイト",c:"#ff5fa2"});
+  openPanel(`<h2>グランドライブ${S.best[0]?' '+'★'.repeat(S.best[0])+'☆'.repeat(3-S.best[0]):''}</h2>
+   <div class="row"><button class="big card press" style="background:var(--pink)" id="pb">🎤 ぜんいんライブ</button><button class="ghost card press" id="pc">✕</button></div>`);
+  $('pb').onclick=()=>quiz(0,M[3]);$('pc').onclick=()=>{closePanel();showMap()};
+}
+
+/* ---------- ザコ戦 ---------- */
+const MON=[["ピンクポヨン","#ffb3d4"],["ソーダプルリン","#a8e0ff"],["レモンモチモチ","#fff08a"],["メロンぷにお","#b8f0a0"],["ぶどうプニャン","#d6b8ff"]];
+function encounter(){
+  const nt=nextTarget(),done=[1,2,3,4,5,6,7,8,9].filter(d=>S.cleared[d]);
+  const pool=nt==='dome'?done:(Math.random()<.6||!done.length?[nt]:done);
+  const a=pool[Math.random()*pool.length|0],b=1+(Math.random()*9|0);
+  const [nm,col]=MON[Math.random()*MON.length|0];
+  setIdol(P);mood();talk('モンスターだ！ くくで やっつけよう！',P);
+  h(`<div class="battle card"><div class="mon" id="mon">${monster(col)}</div><div class="bname">${nm}が あらわれた！</div>
+    <div class="q">${a} <span class="x">×</span> ${b} = ?</div><div class="qy" id="qy"></div></div>
+    <div class="choices">${choicesFor(a,b).map(c=>`<button class="ch card press" data-v="${c}">${c}</button>`).join('')}</div>`);
+  view.querySelectorAll('.ch').forEach(btn=>btn.onclick=()=>{
+    const good=+btn.dataset.v===a*b,y=YOMI[a][b-1];
+    view.querySelectorAll('.ch').forEach(x=>{x.disabled=true;if(+x.dataset.v===a*b)x.classList.add('right')});
+    $('qy').textContent=y;speak(y);
+    if(good){S.coins++;save();$('mon').classList.add('poof');mood('happy');beep(true);sticker('🪙 +1');talk(`${nm}を キラキラに した！ キラコインを ゲット！`,P);setTimeout(()=>showMap(),1500)}
+    else{btn.classList.add('wrong');$('mon').classList.add('flee');mood('oh');beep(false);talk(`${nm}は にげちゃった。こたえは「${y}」だよ！`,P);setTimeout(()=>showMap(),2700)}
+  });
+}
+
+/* ---------- れんしゅう ---------- */
+function study(d,m){
+  setIdol(m);mood();talk('タップすると うたって くれるよ。こたえを かくして いえるかな？',m.n?m:SYS);
+  let rows='';for(let i=1;i<=9;i++)rows+=`<button class="tr card press" data-i="${i}"><span class="eq">${d} × ${i} = <span class="ans">${d*i}</span></span><span class="yomi" style="color:${m.c}">${YOMI[d][i-1]}</span><span>🔊</span></button>`;
+  h(`<button class="back card press" id="bk">← マップへ</button><h1>${d}のだん</h1>
+  <button class="toggle card press" id="tg">🙈 こたえを かくす</button><div class="table">${rows}</div>
+  <div class="row"><button class="big card press" style="background:var(--blue)" id="all">🔊 ぜんぶ うたう</button><button class="big card press" style="background:var(--pink)" id="go">🎤 ライブバトル</button></div>`);
+  let hide=false;const tg=$('tg');
+  tg.onclick=()=>{hide=!hide;view.querySelectorAll('.tr').forEach(r=>r.classList.toggle('hide',hide));tg.textContent=hide?'👀 こたえを みせる':'🙈 こたえを かくす'};
+  view.querySelectorAll('.tr').forEach(r=>r.onclick=()=>{const i=+r.dataset.i;speak(YOMI[d][i-1]);mood('happy');if(hide)r.classList.remove('hide')});
+  $('all').onclick=()=>speak(YOMI[d].join('、'));$('bk').onclick=()=>showMap();$('go').onclick=()=>quiz(d,m);
+}
+
+/* ---------- ライブバトル ---------- */
+function quiz(d,m){
+  let qs;
+  if(d===0){qs=[];while(qs.length<10){const a=1+(Math.random()*9|0),b=1+(Math.random()*9|0);if(!qs.some(q=>q[0]===a&&q[1]===b))qs.push([a,b])}}
+  else{qs=shuffle([1,2,3,4,5,6,7,8,9].map(i=>[d,i]));qs.push([d,1+(Math.random()*9|0)])}
+  let n=0,ok=0,res=[],miss=[];
+  const next=()=>{
+    if(n>=qs.length)return result(d,ok,qs.length,miss,m);
+    const [a,b]=qs[n];
+    const mm=d===0?memberFor(a):m;setIdol(mm);mood();
+    talk(n===0?'ライブ スタート！ いっくよ〜！':['つぎの もんだい！','この ちょうし！','がんばって〜！'][n%3],mm.n?mm:SYS);
+    const dots=qs.map((_,i)=>`<span class="dot ${res[i]===true?'ok':res[i]===false?'ng':i===n?'now':''}"></span>`).join('');
+    h(`<div class="qbar"><button class="back card press" id="bk">← マップへ</button><span>${n+1} / ${qs.length}きょくめ</span></div>
+    <div class="dots">${dots}</div>
+    <div class="qcard card"><div class="q">${a} <span class="x">×</span> ${b} = ?</div><div class="qy" id="qy" style="color:${mm.c}"></div></div>
+    <div class="choices">${choicesFor(a,b).map(c=>`<button class="ch card press" data-v="${c}">${c}</button>`).join('')}</div>`);
+    $('bk').onclick=()=>showMap();
+    view.querySelectorAll('.ch').forEach(btn=>btn.onclick=()=>{
+      const v=+btn.dataset.v,good=v===a*b,y=YOMI[a][b-1];
+      view.querySelectorAll('.ch').forEach(x=>{x.disabled=true;if(+x.dataset.v===a*b)x.classList.add('right')});
+      $('qy').textContent=y;speak(y);
+      if(good){ok++;res[n]=true;mood('happy');beep(true);const p=PRAISE[Math.random()*PRAISE.length|0];talk(p);sticker(p)}
+      else{res[n]=false;miss.push([a,b]);btn.classList.add('wrong');mood('oh');beep(false);talk(`おしい！「${y}」だよ。いっしょに いってみよう！`)}
+      n++;setTimeout(next,good?1300:2600);
+    });
+  };
+  next();
+}
+function result(d,ok,total,miss,m){
+  const st=ok===total?3:ok>=total-2?2:ok>=total/2?1:0;
+  if(st>(S.best[d]||0))S.best[d]=st;
+  const clear=ok>=7,newly=clear&&!S.cleared[d];
+  if(newly)S.cleared[d]=true;
+  save();
+  const mm=M[d]||M[3];setIdol(mm);mood(clear?'happy':'oh');
+  if(newly)tone([523,659,784,1047,784,1047],'triangle',.12);else beep(clear);
+  let msg;
+  if(d===0)msg=clear?'グランドライブ だいせいこう！ きみは 九九マスターだよ！':'あと すこし！ 7もん せいかいで グランドライブ せいこうだよ！';
+  else if(newly&&d===1)msg='れんしゅう クリア！ みちが ひらいたよ。さきへ すすもう！';
+  else if(newly)msg=`やったね！ ${M[d].n}が なかまに なったよ！`;
+  else if(clear)msg=st===3?'ぜんもん せいかい！ さいこうの ライブ だったよ！':'ライブ せいこう！ ★3つも めざしてみよう！';
+  else msg='7もん せいかいで クリアだよ。れんしゅうして もう いっかい！';
+  talk(msg,mm);
+  const ms=miss.length?`<div class="miss card">もう いちど おぼえよう：<br>${miss.map(([a,b])=>`${a}×${b}=${a*b}（${YOMI[a][b-1]}）`).join('<br>')}</div>`:'';
+  const un=newly&&M[d]?`<div class="unlock card">${face(M[d])}<span>🎉 ${M[d].n}が なかまに なった！<br>「${M[d].ph}」</span></div>`:'';
+  const end=d===0&&clear?`<div class="unlock card" style="flex-direction:column;text-align:center"><span>🏆 キラメキドーム グランドライブ だいせいこう！</span><div class="lineup">${face(P,true)}${[2,3,4,5,6,7,8,9].map(k=>face(M[k],true)).join('')}</div></div>`:'';
+  h(`<div class="result"><h1>${d?d+'のだん':'グランドライブ'}</h1>
+  <div class="bigstars">${'★'.repeat(st)}<span class="off">${'★'.repeat(3-st)}</span></div>
+  <div class="score">${total}もん中 ${ok}もん せいかい</div>${un}${end}${ms}
+  <div class="row" style="width:100%"><button class="big card press" style="background:var(--blue)" id="hm">🗺 マップへ</button><button class="big card press" style="background:var(--pink)" id="again">もう いっかい</button></div></div>`);
+  $('again').onclick=()=>quiz(d,m);$('hm').onclick=()=>showMap(newly&&d>1?`${M[d].n}が うしろから ついてくるよ！ ${guide()}`:undefined);
+}
+
+/* ---------- クラウド保存 ---------- */
+(async()=>{try{
+  const c=window.claude;if(!c||!c.use)return;
+  const [db,user]=await Promise.all([c.use('db'),c.use('user')]);if(!db||!user)return;
+  const id=await user.id();if(!id)return;
+  const ref=db.collection('data/users/'+id).doc('kuku');
+  const snap=await ref.get();let sv=snap.exists?snap.data():{};
+  if((sv.resetAt||0)>S.resetAt){S={best:{},cleared:{},coins:0,pos:{x:4,y:1},resetAt:sv.resetAt};pl={x:4,y:1};trail=Array(9).fill(0).map(()=>({...pl}));camY=0}
+  if((sv.updatedAt||0)<S.resetAt)sv={};
+  const sb=sv.best||{},sr=sv.rpg||{};
+  for(const k in sb)if((sb[k]||0)>(S.best[k]||0))S.best[k]=sb[k];
+  const cloudMore=nCleared(sr.cleared)>nCleared(S.cleared);
+  for(const k in (sr.cleared||{}))if(sr.cleared[k])S.cleared[k]=true;
+  S.coins=Math.max(S.coins||0,sr.coins||0);
+  if(cloudMore&&sr.pos&&walkable(sr.pos.x,sr.pos.y)&&!mv&&!queue.length){pl={...sr.pos};S.pos={...pl};trail=Array(9).fill(0).map(()=>({...pl}));camY=clampCam(pl.y*TS+TS/2-VH*TS/2)}
+  cloudRef=ref;save();
+  if(!mapScreen.hidden&&panel.hidden){hud();talk(guide(),P)}
+}catch(e){}})();
+
+$('resetBtn').onclick=()=>{if(busy)return;setIdol(P);mood('oh');talk('ほんとうに さいしょから にする？ なかまも ★も コインも ぜんぶ リセットされるよ。',SYS);
+  openPanel(`<h2>さいしょから あそぶ？</h2><div class="row"><button class="big card press" style="background:var(--pink)" id="rsYes">はい、さいしょから！</button><button class="ghost card press" id="rsNo">やめる</button></div>`);
+  $('rsNo').onclick=()=>showMap();
+  $('rsYes').onclick=()=>{queue=[];pending=null;mv=null;S={best:{},cleared:{},coins:0,pos:{x:4,y:1},resetAt:Date.now()};pl={x:4,y:1};trail=Array(9).fill(0).map(()=>({...pl}));camY=0;steps=0;
+    try{localStorage.removeItem('kuku-idol-best')}catch(e){}save();showMap('さいしょから スタート！ 8人の アイドルに あいに いこう。みちを タップすると あるけるよ！')}};
+window.addEventListener('resize',()=>{const old=TS;const w=Math.min(cv.parentElement.clientWidth||360,520);if(Math.floor(w/W)!==old)resize()});
+resize();showMap(S.pos.x===4&&S.pos.y===1&&!nCleared(S.cleared)?'ここから ぼうけんスタート！ 8人の アイドルに あいに いこう。みちを タップすると あるけるよ！':undefined);
+requestAnimationFrame(loop);
+</script>
+
+</body></html>
